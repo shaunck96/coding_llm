@@ -1,0 +1,8 @@
+torch 
+torchvision 
+transformers 
+datasets 
+tokenizers 
+accelerate 
+deepspeed
+mlflow
