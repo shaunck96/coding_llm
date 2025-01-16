@@ -1,4 +1,4 @@
-# README: Titan Memory-Integrated Llama-2 for Code Generation
+# Titan Memory-Integrated Llama-2 for Code Generation
 
 This README outlines how to train a **Llama-2-based** Large Language Model (LLM) with a **custom “Titan” memory module**, which persistently maintains and updates a learned representation of prior context. The overall goal is to build a **coding assistant** that can generate code while leveraging an external memory to adapt over time. 
 
