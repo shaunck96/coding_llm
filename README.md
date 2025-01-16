@@ -28,7 +28,7 @@ This README outlines how to train a **Llama-2-based** Large Language Model (LLM)
 
 ```
 .
-├── TitanMemoryLLM_Training.py    # Example script/notebook showcasing the full training flow
+├── train.py    # Example script/notebook showcasing the full training flow
 ├── README.md                     # This README
 └── requirements.txt              # (Optional) If you choose to define your environment dependencies
 ```
