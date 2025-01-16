@@ -1,6 +1,6 @@
 # Titan Memory-Integrated Llama-2 for Code Generation
 
-This README outlines how to train a **Llama-2-based** Large Language Model (LLM) with a **custom “Titan” memory module**, which persistently maintains and updates a learned representation of prior context. The overall goal is to build a **coding assistant** that can generate code while leveraging an external memory to adapt over time. 
+This document outlines how to train a **Llama-2-based** Large Language Model (LLM) with a **custom “Titan” memory module**, which persistently maintains and updates a learned representation of prior context. The overall goal is to build a **coding assistant** that can generate code while leveraging an external memory to adapt over time. 
 
 **Note**: This project is a proof-of-concept to demonstrate how one might integrate persistent neural memory into a causal language model. Achieving **state-of-the-art code generation** (comparable to tools like Copilot, Code Llama, StarCoder, etc.) requires extensive data, compute resources, and additional fine-tuning strategies. Nonetheless, this repository shows a framework to get started.
 
