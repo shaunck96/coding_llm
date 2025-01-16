@@ -1,169 +1,229 @@
-Here's a comprehensive README for the provided code:
+# README: Titan Memory-Integrated Llama-2 for Code Generation
+
+This README outlines how to train a **Llama-2-based** Large Language Model (LLM) with a **custom “Titan” memory module**, which persistently maintains and updates a learned representation of prior context. The overall goal is to build a **coding assistant** that can generate code while leveraging an external memory to adapt over time. 
+
+**Note**: This project is a proof-of-concept to demonstrate how one might integrate persistent neural memory into a causal language model. Achieving **state-of-the-art code generation** (comparable to tools like Copilot, Code Llama, StarCoder, etc.) requires extensive data, compute resources, and additional fine-tuning strategies. Nonetheless, this repository shows a framework to get started.
 
 ---
 
-# LLaMA-Titan: A State-of-the-Art Reasoning and Coding Language Model
+## Table of Contents
 
-This repository contains the implementation of **LLaMA-Titan**, a state-of-the-art language model that integrates the **Titan architecture** with the **LLaMA-2** foundation model. The model is designed for long-context reasoning and coding tasks, leveraging advanced memory mechanisms to handle complex dependencies effectively.
-
----
-
-## Features
-
-### 1. **LLaMA-2 Integration**
-The model uses **LLaMA-2-7B**, a powerful transformer architecture, as the backbone. LLaMA-2 excels at natural language understanding and generation tasks, providing a strong foundation for further enhancement.
-
-### 2. **Titan Memory Mechanism**
-The Titan architecture incorporates **Neural Memory Modules**, enabling the model to:
-- Dynamically update long-term memory using a "surprise-based" mechanism.
-- Balance short-term attention with persistent memory, allowing for efficient long-context handling.
-- Scale efficiently to handle large datasets and extended sequences.
-
-### 3. **Diverse Dataset Support**
-The code supports training on a wide range of code-related datasets, including:
-- **CodeSearchNet**: Large-scale (comment, code) pairs across multiple languages.
-- **The Stack**: A diverse collection of permissively licensed code.
-- **CodeParrot APPS**: Coding problems and solutions for benchmarking.
-
-### 4. **High Performance**
-- **Gradient Accumulation**: Simulates larger batch sizes on memory-constrained GPUs.
-- **Dynamic Scheduling**: Implements a linear learning rate scheduler with warmup for stable optimization.
-- **Distributed Training**: Uses the `Accelerator` library to efficiently train across multiple GPUs.
-
-### 5. **Experiment Tracking**
-- Tracks hyperparameters, metrics, and loss values using **MLflow**.
-- Saves checkpoints for reproducibility and later inference.
+1. [Project Structure](#project-structure)  
+2. [Key Features](#key-features)  
+3. [Usage & Setup](#usage--setup)  
+   1. [Environment Setup](#environment-setup)  
+   2. [Running the Notebook or Script](#running-the-notebook-or-script)  
+4. [Components Explanation](#components-explanation)  
+   1. [NeuralMemory](#1-neuralmemory)  
+   2. [LlamaTitanModel](#2-llamatitanmodel)  
+   3. [Training Pipeline](#3-training-pipeline)  
+5. [Customization & Extensions](#customization--extensions)  
+6. [Performance & Scaling](#performance--scaling)  
+7. [Limitations](#limitations)  
+8. [License & Acknowledgments](#license--acknowledgments)
 
 ---
 
-## Installation
+## Project Structure
 
-To set up the environment, install the necessary dependencies:
-
-```bash
-pip install torch torchvision transformers datasets tokenizers accelerate deepspeed mlflow
+```
+.
+├── TitanMemoryLLM_Training.py    # Example script/notebook showcasing the full training flow
+├── README.md                     # This README
+└── requirements.txt              # (Optional) If you choose to define your environment dependencies
 ```
 
----
-
-## Usage
-
-### 1. **Configuration**
-Modify the `Config` class in the code to adjust the hyperparameters:
-
-- `MODEL_NAME`: Pre-trained model to use (default: `meta-llama/Llama-2-7b-hf`).
-- `MEMORY_SIZE`: Size of the neural memory module (default: `4096`).
-- `BATCH_SIZE`: Number of samples per batch (default: `8`).
-- `EPOCHS`: Number of training epochs (default: `5`).
-- `DATASET_NAMES`: List of datasets for training.
-
-### 2. **Model Architecture**
-The `LlamaTitanModel` class integrates LLaMA-2 with Titan's memory modules:
-- **NeuralMemory**: Updates memory based on input "surprise," combining new and old information dynamically.
-- **Attention Mechanism**: Combines memory outputs with token embeddings for richer contextual understanding.
-- **Classifier**: Final layer for task-specific outputs, e.g., binary classification for reasoning.
-
-### 3. **Data Preprocessing**
-The `load_and_preprocess_data` function:
-- Loads datasets from Hugging Face.
-- Tokenizes inputs using the `LlamaTokenizer` to ensure compatibility with LLaMA-2.
-- Supports mixed datasets to provide diverse training samples.
-
-### 4. **Training**
-The `train_model` function:
-- Uses the `Accelerator` library for efficient distributed training across multiple GPUs.
-- Implements gradient accumulation to simulate large batch sizes.
-- Logs metrics and parameters to MLflow during training.
-- Saves checkpoints after training for later use.
+- **TitanMemoryLLM_Training.py** (or a notebook version) contains the end-to-end training pipeline.  
+- **README.md** (this file) explains the conceptual flow and usage.  
+- **requirements.txt** is optional; you might define the environment dependencies there if you want to replicate the environment easily.
 
 ---
 
-## Workflow
+## Key Features
 
-1. **Load and Preprocess Data**:
-   - Combines datasets like CodeSearchNet and The Stack.
-   - Tokenizes inputs with truncation and padding.
+1. **Llama-2 Causal Language Modeling**  
+   - Uses `LlamaForCausalLM` from Hugging Face Transformers to provide next-token prediction for code or text.
 
-2. **Initialize Model**:
-   - Instantiates `LlamaTitanModel`, integrating LLaMA-2 with Titan memory.
+2. **Titan Memory Module**  
+   - A custom `NeuralMemory` class keeps a persistent buffer of size `MEMORY_SIZE`.  
+   - Each forward pass, it computes a “surprise” measure based on hidden-state differences and updates this buffer.  
+   - Integrates memory-augmented representations back into the LLM’s hidden states.
 
-3. **Train the Model**:
-   - Optimizes weights using AdamW with weight decay.
-   - Adjusts the learning rate dynamically with a scheduler.
+3. **Hugging Face Accelerate**  
+   - Handles distributed training, mixed precision, or multi-GPU setups with minimal changes to the code.  
+   - Simplifies device handling and gradient synchronization.
 
-4. **Log and Save**:
-   - Tracks training metrics with MLflow.
-   - Saves model checkpoints for reproducibility.
+4. **MLflow Integration**  
+   - Tracks hyperparameters, training loss, and other metrics.  
+   - Saves experiment logs so you can compare across runs.
 
----
-
-## Hyperparameter Tuning
-
-To achieve the best performance:
-- Increase `MEMORY_SIZE` and `MAX_LENGTH` for tasks requiring longer context handling.
-- Adjust `LEARNING_RATE` and `BATCH_SIZE` based on available hardware.
-- Use a mix of datasets to improve generalization across tasks.
+5. **Built for Code Datasets**  
+   - Integrates with code-related datasets like CodeSearchNet, The Stack, or Apps from Hugging Face.  
+   - Demonstrates typical steps for text preprocessing and labeled data (if relevant).
 
 ---
 
-## Example Output
+## Usage & Setup
 
-### Training Logs (via MLflow)
-```
-Epoch 1/5, Loss: 2.1567
-Epoch 2/5, Loss: 1.8234
-Epoch 3/5, Loss: 1.5638
-...
-```
+### Environment Setup
 
-### Model Predictions (Reasoning Task)
-**Input**: "Is the code snippet solving the Fibonacci problem?"
-**Output**: "Yes"
+1. **Python Environment**  
+   - Python 3.8+ is recommended (though 3.9+ also works).  
+   - You need a GPU with substantial VRAM for training a 7B+ model (e.g., NVIDIA A100 with 40GB, or multiple GPUs using Accelerate).
+
+2. **Install Dependencies**  
+   - If running in a Databricks notebook, you can prepend each cell with `%pip install ...` or run directly:
+     ```bash
+     pip install torch torchvision transformers datasets tokenizers accelerate deepspeed mlflow
+     ```
+   - Alternatively, define them in `requirements.txt` and run:
+     ```bash
+     pip install -r requirements.txt
+     ```
+
+3. **Model Checkpoint**  
+   - You must have access to `meta-llama/Llama-2-7b-hf` (or a similar Llama-2 checkpoint) on Hugging Face. This typically requires acceptance of the license terms.
+
+### Running the Notebook or Script
+
+1. **Databricks Notebook**  
+   - Upload the `.py` or `.ipynb` file to your Databricks workspace.  
+   - Attach to a GPU cluster (with at least one A100, ideally).  
+   - Update any configuration paths (e.g., `CHECKPOINT_DIR`, `LOGGING_DIR`) to point to your preferred storage.  
+   - Run all cells in order.
+
+2. **Local / Server Training**  
+   - Make sure you have GPUs accessible locally or on a remote server with CUDA.  
+   - Clone or copy this repository.  
+   - Modify the paths (e.g., `CHECKPOINT_DIR`) in the config class.  
+   - Run:
+     ```bash
+     python TitanMemoryLLM_Training.py
+     ```
+
+> **Tip**: If you are memory-constrained, reduce `BATCH_SIZE` or `MAX_LENGTH` to avoid out-of-memory (OOM) errors.
 
 ---
 
-## Extending the Code
+## Components Explanation
 
-### Add New Datasets
-To add additional datasets:
-1. Add the dataset name to `config.DATASET_NAMES`.
-2. Ensure the dataset has a `text`, `context`, or `code` field for tokenization.
+### 1. `NeuralMemory`
 
-### Custom Tasks
-Modify the `LlamaTitanModel` classifier for tasks like:
-- Code summarization.
-- Code completion.
-- Question answering.
+- **Location**: Defined inside the script/notebook under `class NeuralMemory(nn.Module)`.  
+- **Function**:  
+  - Maintains a persistent buffer (`self.memory`) with shape `(MEMORY_SIZE, HIDDEN_DIM)`.  
+  - Projects the model’s hidden states into a memory space, computes a “surprise” measure by comparing them to the persistent buffer, and updates the buffer.  
+  - Returns a memory-augmented hidden state that is later combined with the model’s own representation.
+
+- **Key Methods**:  
+  - `forward(hidden_states)`:  
+    1. Projects `hidden_states` into memory space.  
+    2. Computes difference (`L2 norm`) with the persistent memory.  
+    3. Calculates “surprise” as average difference across memory slots.  
+    4. Updates memory outside the gradient flow using a weighted average of past memory and the new states.  
+    5. Returns the final memory-augmented representation.
+
+- **Design Note**: This approach is simplistic. For large-scale usage, you may need more advanced gating or a recurrent-like memory for stable gradient-based learning.
+
+### 2. `LlamaTitanModel`
+
+- **Location**: `class LlamaTitanModel(nn.Module)`.  
+- **Function**:  
+  - Wraps `LlamaForCausalLM` (the standard Llama-2 architecture for next-token prediction).  
+  - Integrates the `NeuralMemory` after obtaining the base hidden states from Llama.  
+  - Applies an optional `MultiheadAttention` to blend the original hidden states with the memory outputs.  
+  - Finally, passes the resulting representation to the Llama language modeling head to get output logits.
+
+- **Key Steps**:  
+  1. Get hidden states from `self.llama_model.model(...)`.  
+  2. Pass them to `self.memory_module(...)`.  
+  3. Combine via `self.memory_attention(...)`.  
+  4. Generate logits via `self.llama_model.lm_head(...)`.  
+  5. Compute a causal language modeling loss if `labels` are provided.
+
+### 3. Training Pipeline
+
+1. **Data Loading**:  
+   - Uses `load_dataset` from Hugging Face to fetch code-related datasets (`code_search_net`, `bigcode/the-stack`, `codeparrot/apps`).  
+   - Concatenates them.  
+   - Tokenizes up to `MAX_LENGTH` tokens, sets `labels = input_ids` for causal LM.
+
+2. **Accelerate Setup**:  
+   - Creates an `Accelerator` instance.  
+   - Prepares model, optimizer, and dataloader for distributed or mixed-precision training.
+
+3. **Forward & Backward Pass**:  
+   - Each iteration, calls `model(input_ids, attention_mask, labels)`.  
+   - Loss is backpropagated, and steps are accumulated until `GRADIENT_ACCUMULATION_STEPS` is reached.  
+   - Optimizer and scheduler are stepped, and gradients are zeroed out.
+
+4. **MLflow Logging**:  
+   - Logs hyperparameters at the start of the run.  
+   - Logs training loss at each epoch step.  
+   - (Optional) Add custom logs or validation metrics as needed.
+
+5. **Checkpointing**:  
+   - After all epochs, calls `accelerator.unwrap_model(model)` to get the base model.  
+   - Saves it to `CHECKPOINT_DIR` using `save_pretrained`.
 
 ---
 
-## Performance Optimization
+## Customization & Extensions
 
-### 1. GPU Utilization
-Ensure that all available GPUs are utilized by initializing the `Accelerator` with `device_placement=True`.
+1. **Partial Freezing**:  
+   - Uncomment lines in `LlamaTitanModel.__init__` to freeze early layers if you only want to train the memory and final layers.
 
-### 2. Memory Management
-- Reduce `BATCH_SIZE` or use gradient checkpointing for memory-constrained environments.
-- Enable mixed precision training with `fp16` for faster computation.
+2. **Different Datasets**:  
+   - Change `config.DATASET_NAMES` to your target code or text datasets.  
+   - Ensure the `tokenize_function` reflects the correct column names (e.g., `'code'`, `'text'`, etc.).
 
-### 3. Experiment Tracking
-Use MLflow's UI to monitor metrics, analyze trends, and compare experiments.
+3. **Evaluation & Validation**:  
+   - Create a separate validation set or reserve part of your dataset.  
+   - Periodically evaluate perplexity or generation quality on the validation set.
+
+4. **Memory Mechanism**:  
+   - Replace the simplistic memory update logic with a more advanced approach (e.g., gating, trainable memory parameters, or recurrent-like memory).
+
+5. **Model Size**:  
+   - Switch to “meta-llama/Llama-2-13b-hf” or “meta-llama/Llama-2-70b-hf” if you have the necessary hardware resources and you want a bigger foundation.  
+   - For smaller experiments or prototyping, consider “meta-llama/Llama-2-7b-hf” or even a smaller code-specific base.
+
+---
+
+## Performance & Scaling
+
+- **GPU Requirements**:  
+  - A single 7B model with `MAX_LENGTH=1024` can use 20–30 GB of VRAM or more, depending on batch size.  
+  - To handle multi-GPU setups, ensure you use `Accelerate` in distributed mode, or run on a cluster (e.g., Databricks with multiple A100s).
+
+- **Gradient Checkpointing**:  
+  - If you encounter out-of-memory errors, enable `model.llama_model.gradient_checkpointing_enable()` or reduce `MAX_LENGTH`/`BATCH_SIZE`.
+
+- **Throughput**:  
+  - Training code LLMs can be slow. Consider further optimizations or distributed training strategies.
 
 ---
 
 ## Limitations
 
-1. **Hardware Requirements**: The model requires multiple high-memory GPUs (e.g., A100) for optimal performance.
-2. **Long Training Times**: Large-scale training can take several hours to days depending on dataset size and model configuration.
+1. **Memory Implementation**:  
+   - The `NeuralMemory` uses a simple in-place update that is mostly outside the standard gradient flow. This might limit the effectiveness of the memory.  
+   - A more robust approach could use a differentiable memory with trainable parameters and gating mechanisms.
+
+2. **Data Volume**:  
+   - Public code datasets can be extremely large (e.g., The Stack). For production usage, you may want to stream the data or use dataset subsets.
+
+3. **Evaluation & RLHF**:  
+   - This script does not implement a reward model or RLHF, which are often crucial for refining code generation quality and instruction-following behavior.
+
+4. **Licensing & Access**:  
+   - Access to Llama-2 checkpoints requires agreement to Meta’s license. Ensure you have permissions.
 
 ---
 
-## References
+## License & Acknowledgments
 
-- [LLaMA: Open Foundation and Fine-Tuned Models](https://github.com/facebookresearch/llama)
-- [Titan: Learning to Memorize at Test Time](https://arxiv.org/abs/2312.12345)
-- [Hugging Face Datasets](https://huggingface.co/datasets)
-
----
-
-This implementation is designed to provide a scalable, efficient, and modular framework for training advanced coding LLMs. Feel free to reach out with any questions or suggestions!
+- **Llama-2 Model**: Provided by Meta under its [Llama-2 license terms](https://ai.meta.com/resources/meta-llama-license/).  
+- **Transformers & Datasets**: By [Hugging Face](https://huggingface.co/), under Apache 2.0.  
+- **MLflow**: An open-source platform for managing ML lifecycles.  
+- **Accelerate**: An open-source library by Hugging Face for easy distributed and mixed-precision training.
